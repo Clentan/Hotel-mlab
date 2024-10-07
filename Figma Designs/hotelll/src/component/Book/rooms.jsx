@@ -67,8 +67,8 @@ const Bedroom = () => {
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
-    const [name, setName] = useState("");  // State for the name input
-    const [availability, setAvailability] = useState(true); // Default availability state
+    const [name, setName] = useState("");
+    const [availability, setAvailability] = useState(true);
 
     const handleArrowClick = (index, direction) => {
         const currentIndex = currentViewIndex[index] || 0;
@@ -95,7 +95,7 @@ const Bedroom = () => {
 
     const checkAvailability = () => {
         if (date && time) {
-            const isAvailable = Math.random() > 0.5; // Randomly assume availability for demonstration
+            const isAvailable = Math.random() > 0.5;
             setAvailability(isAvailable);
             return isAvailable;
         }
@@ -108,7 +108,7 @@ const Bedroom = () => {
             setBookingModalVisible(false);
             setDate("");
             setTime("");
-            setName(""); // Reset name field
+            setName("");
             setAvailability(true);
         } else {
             console.log(`Room not available for the selected date and time.`);
@@ -124,6 +124,7 @@ const Bedroom = () => {
                     key={index}
                     isPressable
                     onPress={() => console.log("Item pressed:", item.name)}
+                    className="transition-transform transform hover:scale-105"
                 >
                     <CardBody className="overflow-visible p-0">
                         <Image
@@ -131,7 +132,7 @@ const Bedroom = () => {
                             radius="lg"
                             width="100%"
                             alt={item.name}
-                            className="w-full object-cover h-[400px]"
+                            className="w-full object-cover h-[300px] sm:h-[350px] md:h-[400px]"
                             src={item.photoName}
                         />
                     </CardBody>
@@ -220,4 +221,4 @@ const Bedroom = () => {
     );
 };
 
-export default Bedroom; 
+export default Bedroom;

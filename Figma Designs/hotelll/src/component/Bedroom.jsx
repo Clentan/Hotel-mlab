@@ -4,7 +4,7 @@ const Bedroom = () => {
     const Cars = [
         {
             name: 'Bedroom1',
-            photoName: "Bedroom/Bedroom1.jpeg"  // Corrected the key name
+            photoName: "Bedroom/Bedroom1.jpeg"
         },
         {
             name: "Bedroom2",
@@ -17,22 +17,23 @@ const Bedroom = () => {
     ];
 
     return (
-        <div className="gap-2 grid grid-cols-2 sm:grid-cols-3">
+        <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {Cars.map((item, index) => (
                 <Card
                     shadow="sm"
                     key={index}
                     isPressable
-                    onPress={() => console.log("item pressed:", item.name)}  // Added name to the console for debugging
+                    onPress={() => console.log("item pressed:", item.name)}
+                    className="w-full" // Ensures card takes full width of its grid cell
                 >
                     <CardBody className="overflow-visible p-0">
                         <Image
                             shadow="sm"
                             radius="lg"
                             width="100%"
-                            alt={item.name} 
-                            className="w-60 object-cover h-[400px]"
-                            src={item.photoName}  // Using the correct key here
+                            alt={item.name}
+                            className="w-full object-cover h-[300px] md:h-[400px] max-w-full"  // Fully responsive image
+                            src={item.photoName}
                         />
                     </CardBody>
                     <CardFooter className="text-small text-center">
