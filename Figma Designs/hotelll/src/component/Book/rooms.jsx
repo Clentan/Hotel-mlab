@@ -1,9 +1,9 @@
 import React, { useState } from "react";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { Card, CardBody, CardFooter, Image, Button, Input } from "@nextui-org/react";
 import { AiFillStar, AiOutlineStar, AiFillDelete } from "react-icons/ai"; 
 import { getDatabase, ref, push, set } from "firebase/database";
 import app from "../firebaseConfig";
-import { loadStripe } from '@stripe/stripe-js';
 
 // Watchlist Component
 const Watchlist = ({ favorites, onRemoveFavorite }) => {
@@ -24,7 +24,6 @@ const Watchlist = ({ favorites, onRemoveFavorite }) => {
         </div>
     );
 };
-
 const Bedroom = () => {
     const Cars = [
         {
@@ -35,7 +34,7 @@ const Bedroom = () => {
                 "Book/Bed2.jpeg", 
                 "Book/Bed1.jpeg"
             ],
-            price: 100, // Price in dollars
+            price: 100,
         },
         {
             name: "Bedroom2",
@@ -89,19 +88,19 @@ const Bedroom = () => {
         }
     ];
 
+
     const [currentViewIndex, setCurrentViewIndex] = useState({});
-    const [ratings, setRatings] = useState(Array(Cars.length).fill(0));
     const [bookingModalVisible, setBookingModalVisible] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [checkInDate, setCheckInDate] = useState("");
     const [checkOutDate, setCheckOutDate] = useState("");
     const [numberOfRooms, setNumberOfRooms] = useState(1);
     const [numberOfGuests, setNumberOfGuests] = useState(1);
+    const [loading, setLoading] = useState(false);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-
-    // State for favorites
     const [favorites, setFavorites] = useState([]);
+    const [paymentModalVisible, setPaymentModalVisible] = useState(false); // New state for payment modal visibility
 
     const handleArrowClick = (index, direction) => {
         const currentIndex = currentViewIndex[index] || 0;
@@ -126,64 +125,31 @@ const Bedroom = () => {
             return;
         }
 
-        const stripe = await stripePromise;
+        setLoading(true);
+        setErrorMessage("");
+        setPaymentSuccess(false);
 
-        const response = await fetch('YOUR_SERVER_ENDPOINT/create-payment-intent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                amount: 5000, // Replace with the actual amount (in cents)
-                currency: 'usd', // Replace with your desired currency
-            }),
-        });
-
-        const data = await response.json();
-        if (data.error) {
-            setErrorMessage(data.error);
-            return;
-        }
-
-        const { clientSecret } = data;
-
-        const { error } = await stripe.confirmCardPayment(clientSecret, {
-            payment_method: {
-                card: {
-                    // Use a card element to get card details
-                },
-                billing_details: {
-                    name: 'Guest Name', // You can replace with actual guest name
-                },
-            },
-        });
-
-        if (error) {
-            setErrorMessage(error.message);
-        } else {
-            setPaymentSuccess(true);
-            setErrorMessage("");
-            const db = getDatabase(app);
-            const bookingsRef = ref(db, 'bookings');
-            const newBookingRef = push(bookingsRef);
-            set(newBookingRef, {
-                room: selectedRoom,
-                checkInDate,
-                checkOutDate,
-                numberOfRooms,
-                numberOfGuests,
-            }).then(() => {
-                console.log(`Booking confirmed for ${selectedRoom} from ${checkInDate} to ${checkOutDate}`);
-            });
+        const db = getDatabase(app);
+        const bookingsRef = ref(db, 'bookings');
+        const newBookingRef = push(bookingsRef);
+        set(newBookingRef, {
+            room: selectedRoom,
+            checkInDate,
+            checkOutDate,
+            numberOfRooms,
+            numberOfGuests,
+        }).then(() => {
+            console.log(`Booking confirmed for ${selectedRoom} from ${checkInDate} to ${checkOutDate}`);
             setBookingModalVisible(false);
-        }
+            setPaymentModalVisible(true); // Open payment modal after booking confirmation
+        });
     };
 
     const handleToggleFavorite = (name) => {
         setFavorites((prevFavorites) =>
             prevFavorites.includes(name)
-                ? prevFavorites.filter((item) => item !== name) // Remove from favorites
-                : [...prevFavorites, name] // Add to favorites
+                ? prevFavorites.filter((item) => item !== name)
+                : [...prevFavorites, name]
         );
     };
 
@@ -210,7 +176,6 @@ const Bedroom = () => {
 
     return (
         <div className="relative p-6">
-            {/* Watchlist Display */}
             <Watchlist favorites={favorites} onRemoveFavorite={handleRemoveFavorite} />
 
             <div className="gap-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
@@ -260,6 +225,7 @@ const Bedroom = () => {
                 ))}
             </div>
 
+            {/* Booking Modal */}
             <CustomModal isVisible={bookingModalVisible} onClose={() => setBookingModalVisible(false)}>
                 <h2 className="text-xl font-bold">Booking {selectedRoom}</h2>
                 <Input
@@ -279,6 +245,7 @@ const Bedroom = () => {
                 <Input
                     label="Number of Rooms"
                     type="number"
+                    min="1"
                     value={numberOfRooms}
                     onChange={(e) => setNumberOfRooms(e.target.value)}
                     className="mb-2"
@@ -286,18 +253,47 @@ const Bedroom = () => {
                 <Input
                     label="Number of Guests"
                     type="number"
+                    min="1"
                     value={numberOfGuests}
                     onChange={(e) => setNumberOfGuests(e.target.value)}
                     className="mb-2"
                 />
-                {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-                {paymentSuccess && <p className="text-green-500">Payment successful!</p>}
-                <Button
-                    className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 transition"
-                    onClick={handleConfirmBooking}
-                >
+                <Button onClick={handleConfirmBooking} className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-700 transition">
                     Confirm Booking
                 </Button>
+                {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+            </CustomModal>
+
+            {/* Payment Modal */}
+            <CustomModal isVisible={paymentModalVisible} onClose={() => setPaymentModalVisible(false)}>
+                <h2 className="text-xl font-bold">Payment for {selectedRoom}</h2>
+                {selectedRoom && (
+                    <PayPalScriptProvider options={{ "client-id": "test" }}>
+                        <PayPalButtons
+                            createOrder={(data, actions) => {
+                                return actions.order.create({
+                                    purchase_units: [{
+                                        amount: {
+                                            value: Cars.find(car => car.name === selectedRoom).price.toString(),
+                                        },
+                                    }],
+                                });
+                            }}
+                            onApprove={async (data, actions) => {
+                                const details = await actions.order.capture();
+                                console.log("Transaction completed by ", details.payer.name.given);
+                                setPaymentSuccess(true);
+                                setPaymentModalVisible(false); // Close payment modal after payment
+                                // Show success message or redirect to another page
+                            }}
+                            onError={(err) => {
+                                console.error("PayPal error:", err);
+                                setErrorMessage("Payment failed. Please try again.");
+                            }}
+                        />
+                    </PayPalScriptProvider>
+                )}
+                {paymentSuccess && <p className="text-green-500">Payment successful!</p>}
             </CustomModal>
         </div>
     );

@@ -1,15 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, Tab, Input, Link, Button, Card, CardBody } from "@nextui-org/react";
 import { auth } from "../config/firebase";
-import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail, signOut } from "firebase/auth";
 
 export default function Form() {
   const [selected, setSelected] = useState("login");
-  const [name, setName] = useState("");//store this in the localStorage
+  const [name, setName] = useState(""); // store this in the localStorage
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [resetMessage, setResetMessage] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Track login status
+  const [loggedInUserName, setLoggedInUserName] = useState(""); // Store logged-in user name
+
+  useEffect(() => {
+    // Retrieve user's name from localStorage if logged in
+    const storedName = localStorage.getItem("userName");
+    if (storedName) {
+      setLoggedInUserName(storedName);
+      setIsLoggedIn(true); // Set the login status to true
+    }
+  }, []);
 
   const SignIn = async () => {
     if (!name || !email || !password) {
@@ -21,17 +32,17 @@ export default function Form() {
     setName("");
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       // Update the user profile with name
       await updateProfile(userCredential.user, { displayName: name });
-
 
       // Store the name in local storage
       localStorage.setItem("userName", name);
       alert("Account created successfully");
 
-
       console.log("User created successfully with name:", name);
+      setIsLoggedIn(true);
+      setLoggedInUserName(name); // Set the logged-in user's name for display
     } catch (error) {
       console.error("Error creating user:", error.message);
     }
@@ -51,112 +62,135 @@ export default function Form() {
     }
   };
 
+  const handleLogout = () => {
+    signOut(auth)
+      .then(() => {
+        localStorage.removeItem("userName"); // Clear localStorage
+        setIsLoggedIn(false); // Set login state to false
+        setLoggedInUserName(""); // Clear the stored name
+        alert("Logged out successfully");
+      })
+      .catch((error) => {
+        console.error("Error logging out:", error.message);
+      });
+  };
+
   return (
     <div className="flex flex-col w-full ml-10">
       <Card className="max-w-full w-[340px] h-[400px]">
         <CardBody className="overflow-hidden">
-          <Tabs
-            fullWidth
-            size="md"
-            aria-label="Tabs form"
-            selectedKey={selected}
-            onSelectionChange={setSelected}
-          >
-            <Tab key="login" title="Login">
-              <form className="flex flex-col gap-4">
-                <Input
-                  isRequired
-                  label="Email"
-                  placeholder="Enter your email"
-                  type="email"
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <Input
-                  isRequired
-                  label="Password"
-                  placeholder="Enter your password"
-                  type="password"
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <p className="text-center text-small">
-                  Need to create an account?{" "}
-                  <Link size="sm" onClick={() => setSelected("sign-up")}>
-                    Sign up
-                  </Link>
-                </p>
-                <div className="flex gap-2 justify-end">
-                  <Button fullWidth color="primary">
-                    Login
-                  </Button>
-                  <button
-                    type="button"
-                    className="text-blue-600"
-                    onClick={() => {
-                      setSelected("reset");
-                    }}
-                  >
-                    Forgotten Password
-                  </button>
-                </div>
-              </form>
-            </Tab>
+          {isLoggedIn ? (
+            <div className="text-center">
+              <h2>Successfully logged in!</h2>
+              <p>Welcome, {loggedInUserName}!</p>
+              <Button fullWidth color="primary" onClick={handleLogout}>
+                Log Out
+              </Button>
+            </div>
+          ) : (
+            <Tabs
+              fullWidth
+              size="md"
+              aria-label="Tabs form"
+              selectedKey={selected}
+              onSelectionChange={setSelected}
+            >
+              <Tab key="login" title="Login">
+                <form className="flex flex-col gap-4">
+                  <Input
+                    isRequired
+                    label="Email"
+                    placeholder="Enter your email"
+                    type="email"
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <Input
+                    isRequired
+                    label="Password"
+                    placeholder="Enter your password"
+                    type="password"
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <p className="text-center text-small">
+                    Need to create an account?{" "}
+                    <Link size="sm" onClick={() => setSelected("sign-up")}>
+                      Sign up
+                    </Link>
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <Button fullWidth color="primary">
+                      Login
+                    </Button>
+                    <button
+                      type="button"
+                      className="text-blue-600"
+                      onClick={() => {
+                        setSelected("reset");
+                      }}
+                    >
+                      Forgotten Password
+                    </button>
+                  </div>
+                </form>
+              </Tab>
 
-            <Tab key="sign-up" title="Sign up">
-              <form className="flex flex-col gap-4 h-[300px]">
-                <Input
-                  isRequired
-                  label="Name"
-                  placeholder="Enter your name"
-                  onChange={(e) => setName(e.target.value)}
-                  type="text"
-                />
-                <Input
-                  isRequired
-                  label="Email"
-                  placeholder="Enter your email"
-                  onChange={(e) => setEmail(e.target.value)}
-                  type="email"
-                />
-                <Input
-                  isRequired
-                  label="Password"
-                  placeholder="Enter your password"
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                />
-                <p className="text-center text-small">
-                  Already have an account?{" "}
-                  <Link size="sm" onClick={() => setSelected("login")}>
-                    Login
-                  </Link>
-                </p>
-                <div className="flex gap-2 justify-end">
-                  <Button fullWidth color="primary" onClick={SignIn}>
-                    Sign up
-                  </Button>
-                </div>
-              </form>
-            </Tab>
+              <Tab key="sign-up" title="Sign up">
+                <form className="flex flex-col gap-4 h-[300px]">
+                  <Input
+                    isRequired
+                    label="Name"
+                    placeholder="Enter your name"
+                    onChange={(e) => setName(e.target.value)}
+                    type="text"
+                  />
+                  <Input
+                    isRequired
+                    label="Email"
+                    placeholder="Enter your email"
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                  />
+                  <Input
+                    isRequired
+                    label="Password"
+                    placeholder="Enter your password"
+                    onChange={(e) => setPassword(e.target.value)}
+                    type="password"
+                  />
+                  <p className="text-center text-small">
+                    Already have an account?{" "}
+                    <Link size="sm" onClick={() => setSelected("login")}>
+                      Login
+                    </Link>
+                  </p>
+                  <div className="flex gap-2 justify-end">
+                    <Button fullWidth color="primary" onClick={SignIn}>
+                      Sign up
+                    </Button>
+                  </div>
+                </form>
+              </Tab>
 
-            {/* Password Reset Tab */}
-            <Tab key="reset" title="Reset Password">
-              <form className="flex flex-col gap-4 h-[300px]">
-                <Input
-                  isRequired
-                  label="Email"
-                  placeholder="Enter your email"
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  type="email"
-                />
-                <div className="flex gap-2 justify-end">
-                  <Button fullWidth color="primary" onClick={handlePasswordReset}>
-                    Send Reset Email
-                  </Button>
-                </div>
-                {resetMessage && <p className="text-center">{resetMessage}</p>}
-              </form>
-            </Tab>
-          </Tabs>
+              {/* Password Reset Tab */}
+              <Tab key="reset" title="Reset Password">
+                <form className="flex flex-col gap-4 h-[300px]">
+                  <Input
+                    isRequired
+                    label="Email"
+                    placeholder="Enter your email"
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    type="email"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button fullWidth color="primary" onClick={handlePasswordReset}>
+                      Send Reset Email
+                    </Button>
+                  </div>
+                  {resetMessage && <p className="text-center">{resetMessage}</p>}
+                </form>
+              </Tab>
+            </Tabs>
+          )}
         </CardBody>
       </Card>
     </div>
