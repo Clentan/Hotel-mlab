@@ -1,4 +1,6 @@
 <img width="922" height="556" alt="image" src="https://github.com/user-attachments/assets/978ee158-b4c3-4bbd-a1ca-6f90e1341024" />
+<img width="903" height="693" alt="image" src="https://github.com/user-attachments/assets/01830226-aba8-46ce-9182-457f26ba1a9e" />
+
 
 Hotel Application
 
